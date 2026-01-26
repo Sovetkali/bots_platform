@@ -3,8 +3,8 @@ from pydantic import SecretStr
 from typing import Optional
 
 class Config(BaseSettings):
-    DEBUG_MODE: Optional[bool] = False
-
+    DEV_MODE: Optional[bool] = False
+    SERVICE_CHAT_ID: Optional[str] = None
     SRV_SERVICEBOT_TOKEN: SecretStr
 
     model_config = SettingsConfigDict(
