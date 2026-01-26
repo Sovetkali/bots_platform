@@ -1,9 +1,5 @@
-import asyncio
 import sys
-
-from aiogram import Bot
 from loguru import logger
-from .config import config
 from .logging_config import log_config
 
 log_config.LOGS_DIR.mkdir(exist_ok=True)
@@ -28,7 +24,7 @@ if log_config.ENV == True:
     )
 else:
     logger.add(
-        log_config.LOGS_DIR / "debug.log",
+        log_config.LOGS_DIR / "platform.log",
         level="DEBUG",
         rotation="10 MB",
         retention="10 days",
