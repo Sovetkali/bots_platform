@@ -8,7 +8,7 @@ class BotRegistry:
     def register(self, name: str, bot_class: type):
         self._bots_classes[name] = bot_class
 
-    def init_all(self):
+    async def init_all(self):
         for name, bot_class in self._bots_classes.items():
             logger.info(f"Initializing bot: {name}")
             self._instances[name] = bot_class()
