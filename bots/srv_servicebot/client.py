@@ -1,13 +1,13 @@
 from core.clients.aiogram_client import AiogramBotClient
 from core.models.client_config import BotClientConfig
 from core.models.bot_mode import BotMode
-from .router import ServiceBotRouter
+from aiogram import Router
 from utils.config import config
 
 class ServiceBotClient(AiogramBotClient):
     name = "servicebot"
 
-    def __init__(self):
+    def __init__(self, router: Router):
         super().__init__(
             name=self.name,
             config=BotClientConfig(
@@ -16,5 +16,4 @@ class ServiceBotClient(AiogramBotClient):
                 webhook_url=None
             )
         )
-        self._router = ServiceBotRouter()
-        self.dp.include_router(self._router.router)
+        self.dp.include_router(router)

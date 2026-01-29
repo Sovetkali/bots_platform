@@ -1,8 +1,8 @@
 import asyncio
-from utils.config import config
-from utils.logger import logger
 import bots
 from core.registry import register_bot
+from utils.config import config
+from utils.logger import logger
 
 async def main():
     await register_bot.init_all()
