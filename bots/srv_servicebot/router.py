@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from core.base.router import BotRouter
+from core.database import db
 from .service import ServiceBotService
 from core.models.user import User as UserContext
 from core.models.message import Message as MessageContext
@@ -42,6 +43,7 @@ class ServiceBotRouter(BotRouter):
             return
 
         welcome_text = await self._service.start(user)
+        new_u = await self._service.register_user(user)
         keyboard = self._service.get_keyboard("main", user_name=user.name)
         await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 

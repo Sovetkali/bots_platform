@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import bots
 from core.registry import register_bot
-from utils.config import config
 from utils.logger import logger
 
 async def startup():
