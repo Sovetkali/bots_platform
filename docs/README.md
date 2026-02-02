@@ -26,6 +26,8 @@ Mommy Platform - это модульная платформа для созда�
 - **Database** - Конфигурация и управление подключением к БД
 - **Models** - Модели данных SQLAlchemy
 - **Repositories** - Паттерн репозитория для работы с данными
+- **Filters** - Фильтры для обработки сообщений
+- **Middlewares** - Middleware для обработки запросов
 
 ## Быстрый старт
 
@@ -75,6 +77,69 @@ alembic revision --autogenerate -m "Описание изменений"
 alembic upgrade head
 ```
 
+## Фильтры и Middleware
+
+### Фильтры
+Фильтры позволяют гибко настраивать обработку сообщений. Пример фильтра для приватных чатов:
+
+```python
+from aiogram.filters import BaseFilter
+from aiogram.types import Message
+
+class IsPrivateChat(BaseFilter):
+    async def __call__(self, message: Message) -> bool:
+        return message.chat.type == "private"
+
+# Применение фильтра
+self._router.message.register(self.start, Command("start"), IsPrivateChat())
+```
+
+### Middleware
+Middleware позволяют обрабатывать запросы до их достижения обработчиков. Пример middleware для исключения ботов:
+
+```python
+from aiogram import BaseMiddleware
+from aiogram.types import TelegramObject
+from typing import Callable, Any, Awaitable
+from utils.telegram import get_user_from_update
+
+class IsBotMiddleware(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict
+    ):
+        user = get_user_from_update(event)
+
+        if not user:
+            return await handler(event, data)
+
+        if user.is_bot:
+            return
+
+        return await handler(event, data)
+
+# Применение middleware
+self.dp.update.middleware(IsBotMiddleware())
+```
+
+### Утилиты для работы с Telegram
+Для извлечения пользователя из обновления используется утилитарная функция:
+
+```python
+from aiogram.types import Update, User
+
+def get_user_from_update(update: Update) -> User | None:
+    if update.message:
+        return update.message.from_user
+    if update.callback_query:
+        return update.callback_query.from_user
+    if update.inline_query:
+        return update.inline_query.from_user
+    return None
+```
+
 ## Поддержка
 
 При возникновении проблем:
@@ -83,5 +148,5 @@ alembic upgrade head
 3. Проверьте логи приложения
 
 ---
-*Документация обновлена: 2026-02-01*
-*Добавлена информация о системе базы данных и репозиториях*
+*Документация обновлена: 2026-02-02*
+*Добавлена информация о фильтрах, middleware и утилитах для работы с Telegram*
