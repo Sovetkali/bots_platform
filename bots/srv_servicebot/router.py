@@ -6,6 +6,7 @@ from core.database import db
 from .service import ServiceBotService
 from core.models.user import User as UserContext
 from core.models.message import Message as MessageContext
+from filters.is_private_filter import IsPrivateChat
 from utils.logger import logger
 
 class ServiceBotRouter(BotRouter):
@@ -15,7 +16,7 @@ class ServiceBotRouter(BotRouter):
         self._register()
 
     def _register(self):
-        self._router.message.register(self.start, Command("start"))
+        self._router.message.register(self.start, Command("start"), IsPrivateChat())
         self._router.message.register(self.message_handler)
 
         # Регистрация обработчиков callback от кнопок
