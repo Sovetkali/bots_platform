@@ -25,3 +25,6 @@ loguru==0.7.3
 # Testing
 pytest==9.0.2
 pytest-asyncio==1.3.0
+
+redis==7.1.0
+celery[redis]>=5.3

@@ -8,6 +8,7 @@ from core.models.user import User as UserContext
 from core.models.message import Message as MessageContext
 from filters.is_private_filter import IsPrivateChat
 from utils.logger import logger
+from services.user_service import UserService
 
 class ServiceBotRouter(BotRouter):
     def __init__(self, service: ServiceBotService):
@@ -32,10 +33,10 @@ class ServiceBotRouter(BotRouter):
     def router(self) -> Router:
         return self._router
 
-    async def start(self, message: Message):
+    async def start(self, message: Message, user_service: UserService):
         try:
             user = UserContext(
-                id=message.from_user.id,
+                tg_id=message.from_user.id,
                 name=message.from_user.first_name,
                 lang=message.from_user.language_code
             )
@@ -44,7 +45,12 @@ class ServiceBotRouter(BotRouter):
             return
 
         welcome_text = await self._service.start(user)
-        new_u = await self._service.register_user(user)
+
+        # Регистрируем пользователя с привязкой к текущему боту
+        bot_code = "servicebot"  # Код текущего бота
+        bot_name = "Service Bot"  # Имя текущего бота
+        await user_service.register_user_with_bot(user, bot_code=bot_code, bot_name=bot_name)
+
         keyboard = self._service.get_keyboard("main", user_name=user.name)
         await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
 
@@ -67,7 +73,7 @@ class ServiceBotRouter(BotRouter):
         """Обработка кнопки старт/главное меню"""
         await callback.answer()
         user = UserContext(
-            id=callback.from_user.id,
+            tg_id=callback.from_user.id,
             name=callback.from_user.first_name,
             lang=callback.from_user.language_code
         )

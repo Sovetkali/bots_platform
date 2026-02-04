@@ -7,6 +7,9 @@ from sqlalchemy import pool
 from alembic import context
 from core.database import db, Base
 from core.models.db.user import User
+from core.models.db.bot import Bot
+from core.models.db.user_bot import UserBot
+from utils.config import config as platform_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -43,21 +46,12 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    logger.info("Running migrations in OFFLINE mode")
+    url = platform_config.get_db_url()
 
-    # Получаем URL из конфигурации alembic.ini
-    url = config.get_main_option("sqlalchemy.url")
-    logger.info(f"URL from alembic.ini: {url}")
+    if "+asyncpg" in url:
+        url = url.replace("+asyncpg", "+psycopg2")
 
-    if not url or url == "driver://user:pass@localhost/dbname":
-        # Если URL не настроен, используем URL из нашей конфигурации
-        from utils.config import config as app_config
-        url = app_config.get_db_url()
-        logger.info(f"Using app config URL: {url}")
-
-    # Заменяем asyncpg на psycopg2 для синхронного подключения
-    url = url.replace("+asyncpg", "+psycopg2")
-    logger.info(f"Final URL: {url}")
+    logger.info(f"Offline migration URL: {url}")
 
     context.configure(
         url=url,
@@ -68,6 +62,31 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
+    # logger.info("Running migrations in OFFLINE mode")
+
+    # # Получаем URL из конфигурации alembic.ini
+    # url = config.get_main_option("sqlalchemy.url")
+    # logger.info(f"URL from alembic.ini: {url}")
+
+    # if not url or url == "driver://user:pass@localhost/dbname":
+    #     # Если URL не настроен, используем URL из нашей конфигурации
+    #     from utils.config import config as app_config
+    #     url = app_config.get_db_url()
+    #     logger.info(f"Using app config URL: {url}")
+
+    # # Заменяем asyncpg на psycopg2 для синхронного подключения
+    # url = url.replace("+asyncpg", "+psycopg2")
+    # logger.info(f"Final URL: {url}")
+
+    # context.configure(
+    #     url=url,
+    #     target_metadata=target_metadata,
+    #     literal_binds=True,
+    #     dialect_opts={"paramstyle": "named"},
+    # )
+
+    # with context.begin_transaction():
+    #     context.run_migrations()
 
 
 def run_migrations_online() -> None:
@@ -79,30 +98,56 @@ def run_migrations_online() -> None:
     """
     logger.info("Running migrations in ONLINE mode")
 
-    # Получаем конфигурацию из alembic.ini
-    section = config.get_section(config.config_ini_section, {})
-    logger.info(f"Config section: {section}")
+    url = platform_config.get_db_url()
 
-    # Если URL не настроен, используем URL из нашей конфигурации
-    if not section.get('sqlalchemy.url') or section.get('sqlalchemy.url') == "driver://user:pass@localhost/dbname":
-        from utils.config import config as app_config
-        section['sqlalchemy.url'] = app_config.get_db_url().replace("+asyncpg", "+psycopg2")
-        logger.info(f"Using app config URL: {section['sqlalchemy.url']}")
+    if "+asyncpg" in url:
+        url = url.replace("+asyncpg", "+psycopg2")
+
+    config.set_main_option("sqlalchemy.url", url)
 
     connectable = engine_from_config(
-        section,
+        config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        connect_args={"sslmode": "prefer", "gssencmode": "disable"}
+        connect_args={
+            "sslmode": "prefer",
+            "gssencmode": "disable",
+        },
     )
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
         )
 
         with context.begin_transaction():
             context.run_migrations()
+
+    # Получаем конфигурацию из alembic.ini
+    # section = config.get_section(config.config_ini_section, {})
+    # logger.info(f"Config section: {section}")
+
+    # # Если URL не настроен, используем URL из нашей конфигурации
+    # if not section.get('sqlalchemy.url') or section.get('sqlalchemy.url') == "driver://user:pass@localhost/dbname":
+    #     from utils.config import config as app_config
+    #     section['sqlalchemy.url'] = app_config.get_db_url().replace("+asyncpg", "+psycopg2")
+    #     logger.info(f"Using app config URL: {section['sqlalchemy.url']}")
+
+    # connectable = engine_from_config(
+    #     section,
+    #     prefix="sqlalchemy.",
+    #     poolclass=pool.NullPool,
+    #     connect_args={"sslmode": "prefer", "gssencmode": "disable"}
+    # )
+
+    # with connectable.connect() as connection:
+    #     context.configure(
+    #         connection=connection, target_metadata=target_metadata
+    #     )
+
+    #     with context.begin_transaction():
+    #         context.run_migrations()
 
 
 if context.is_offline_mode():

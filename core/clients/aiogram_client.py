@@ -4,6 +4,8 @@ from aiogram import Bot, Dispatcher
 from core.base.client import BotClient
 from core.models.bot_mode import BotMode
 from core.models.client_config import BotClientConfig
+from middlewares.db_session_middleware import DBSessionMiddleware
+from middlewares.user_middleware import UserMiddleware
 from utils.logger import logger
 
 class AiogramBotClient(BotClient):
@@ -12,6 +14,9 @@ class AiogramBotClient(BotClient):
         self.config = config
         self.bot = Bot(token=config.token)
         self.dp = Dispatcher()
+
+        self.dp.update.middleware(DBSessionMiddleware())
+        self.dp.update.middleware(UserMiddleware())
 
     async def start(self) -> None:
         if self.config.mode == BotMode.POLLING:

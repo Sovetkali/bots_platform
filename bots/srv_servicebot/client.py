@@ -1,7 +1,6 @@
 from core.clients.aiogram_client import AiogramBotClient
 from core.models.client_config import BotClientConfig
 from core.models.bot_mode import BotMode
-from middlewares.is_bot_middleware import IsBotMiddleware
 from aiogram import Router
 from utils.config import config
 
@@ -17,5 +16,4 @@ class ServiceBotClient(AiogramBotClient):
                 webhook_url=None
             )
         )
-        self.dp.update.middleware(IsBotMiddleware())
         self.dp.include_router(router)

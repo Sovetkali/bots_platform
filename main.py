@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import bots
+import core.models.db
 from core.registry import register_bot
 from utils.logger import logger
 
