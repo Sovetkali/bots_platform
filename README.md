@@ -9,6 +9,7 @@
 - **Factory Pattern** - Регистрация ботов через фабричные функции
 - **Simple Container** - Упрощенный контейнер для создания компонентов
 - **Registry Pattern** - Централизованное управление ботами
+- **Система пользователей** - Регистрация пользователей и связь с ботами
 - **Готовые шаблоны кнопок** - Переиспользуемые клавиатуры
 - **База данных PostgreSQL** - Асинхронная работа с БД через SQLAlchemy
 - **Миграции Alembic** - Управление схемой базы данных
@@ -44,12 +45,14 @@ hope_platform/
 │   ├── database.py        # Конфигурация базы данных
 │   ├── keyboard_templates/ # Шаблоны кнопок
 │   ├── models/            # Модели данных
-│   │   └── db/           # Модели базы данных
+│   │   ├── db/           # Модели базы данных
+│   │   └── user.py       # Модель пользователя для бизнес-логики
 │   ├── repositories/      # Репозитории для работы с БД
 │   └── schemas/           # Схемы данных
 ├── docs/                  # Документация
 ├── filters/               # Фильтры для обработки сообщений
 ├── middlewares/           # Middleware для обработки запросов
+├── services/              # Сервисы бизнес-логики
 ├── utils/                 # Утилиты и конфигурация
 └── tests/                 # Тесты
 ```
@@ -182,10 +185,66 @@ class User(Base):
 ```python
 class UserRepository:
     async def create_user(self, *, user_id: int, name: str, lang: str) -> User:
-        user = User(id=user_id, name=name, lang=lang)
+        user = User(telegram_id=user_id, name=name, lang=lang)
         self.session.add(user)
         await self.session.flush()
         return user
+```
+
+### Сервисы
+Сервисы бизнес-логики в [`services/`](services/):
+```python
+class UserService:
+    async def register_user_with_bot(self, user: UserModel, bot_code: str, bot_name: str):
+        """Регистрирует пользователя и связывает его с ботом"""
+        # Получаем или создаем пользователя
+        db_user = await user_repo.get_user_by_telegram_id(user.tg_id)
+        if not db_user:
+            db_user = await user_repo.create_user(user_id=user.tg_id, name=user.name, lang=user.lang)
+
+        # Получаем или создаем бота
+        bot = await bot_repo.create_bot_if_not_exists(bot_code, bot_name)
+
+        # Создаем связь между пользователем и ботом
+        user_bot = await user_bot_repo.link_user_to_bot(db_user.id, bot.id)
+
+        return db_user, bot, user_bot
+```
+
+### Система регистрации пользователей и отслеживания ботов
+
+Платформа автоматически регистрирует пользователей и отслеживает их использование ботов через систему связи многие-ко-многим:
+
+#### Модели данных:
+- **User** - пользователи с telegram_id, именем и языком
+- **Bot** - боты с уникальным кодом и именем
+- **UserBot** - связь между пользователями и ботами с временем первого использования
+
+#### Ключевые возможности:
+- **Автоматическая регистрация** при первом использовании бота
+- **Отслеживание первого использования** (`first_used_at`)
+- **Предотвращение дублирующих связей** (уникальное ограничение)
+- **Обновление данных пользователя** при изменении имени или языка
+- **Получение списка ботов пользователя**
+
+#### Пример использования:
+```python
+# Регистрация пользователя при команде /start
+user_model = UserModel(
+    tg_id=message.from_user.id,
+    name=message.from_user.first_name,
+    lang=message.from_user.language_code or "en"
+)
+
+db_user, bot, user_bot = await user_service.register_user_with_bot(
+    user_model,
+    bot_code='service_bot',
+    bot_name='Service Bot'
+)
+
+# Получение информации о пользователе
+user = await user_service.get_user_by_telegram_id(123456789)
+bots = await user_service.get_user_bots(123456789)  # Список ботов пользователя
 ```
 
 ### Миграции
@@ -223,5 +282,5 @@ alembic downgrade -1
 
 ---
 
-*Документация обновлена: 2026-02-02*
-*Mommy Platform v1.0 - Модульная платформа для Telegram ботов*
+*Документация обновлена: 2026-02-04*
+*Mommy Platform v1.1 - Модульная платформа для Telegram ботов с системой пользователей*
